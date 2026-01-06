@@ -24,17 +24,22 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const success = login(email, password);
-    if (success) {
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully logged in.',
-      });
-      navigate('/dashboard');
-    } else {
+    try {
+      const success = await login(email, password);
+      if (success) {
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully logged in.',
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: 'Login failed',
+          description: 'Please check your credentials and try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
       toast({
         title: 'Login failed',
         description: 'Please check your credentials and try again.',

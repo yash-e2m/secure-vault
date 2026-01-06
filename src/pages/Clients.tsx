@@ -176,7 +176,7 @@ const Clients = () => {
     setIsClientModalOpen(true);
   };
 
-  const handleSaveClient = () => {
+  const handleSaveClient = async () => {
     if (!clientForm.name.trim()) {
       toast({
         title: 'Name required',
@@ -188,24 +188,33 @@ const Clients = () => {
 
     const initials = clientForm.initials || clientForm.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
-    if (editingClient) {
-      updateClient(editingClient.id, { ...clientForm, initials });
-      toast({ title: 'Client updated', description: 'Client details have been saved.' });
-    } else {
-      addClient({ ...clientForm, initials });
-      toast({ title: 'Client added', description: 'New client has been created.' });
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, { ...clientForm, initials });
+        toast({ title: 'Client updated', description: 'Client details have been saved.' });
+      } else {
+        await addClient({ ...clientForm, initials });
+        toast({ title: 'Client added', description: 'New client has been created.' });
+      }
+      setIsClientModalOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save client. Please try again.', variant: 'destructive' });
     }
-    setIsClientModalOpen(false);
   };
 
-  const handleDeleteClient = () => {
+  const handleDeleteClient = async () => {
     if (deletingClient) {
-      deleteClient(deletingClient.id);
-      toast({ title: 'Client deleted', description: 'Client and all credentials have been removed.' });
-      setIsDeleteDialogOpen(false);
-      setDeletingClient(null);
-      if (clientId === deletingClient.id) {
-        navigate('/clients');
+      try {
+        await deleteClient(deletingClient.id);
+        toast({ title: 'Client deleted', description: 'Client and all credentials have been removed.' });
+        setIsDeleteDialogOpen(false);
+        if (clientId === deletingClient.id) {
+          navigate('/clients');
+        }
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to delete client.', variant: 'destructive' });
+      } finally {
+        setDeletingClient(null);
       }
     }
   };
@@ -242,7 +251,7 @@ const Clients = () => {
     setIsCredentialModalOpen(true);
   };
 
-  const handleSaveCredential = () => {
+  const handleSaveCredential = async () => {
     if (!credentialForm.name.trim() || !credentialForm.clientId) {
       toast({
         title: 'Required fields missing',
@@ -254,22 +263,31 @@ const Clients = () => {
 
     const tags = credentialForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
 
-    if (editingCredential) {
-      updateCredential(editingCredential.id, { ...credentialForm, tags });
-      toast({ title: 'Credential updated', description: 'Changes have been saved.' });
-    } else {
-      addCredential({ ...credentialForm, tags });
-      toast({ title: 'Credential added', description: 'New credential has been stored.' });
+    try {
+      if (editingCredential) {
+        await updateCredential(editingCredential.id, { ...credentialForm, tags });
+        toast({ title: 'Credential updated', description: 'Changes have been saved.' });
+      } else {
+        await addCredential({ ...credentialForm, tags });
+        toast({ title: 'Credential added', description: 'New credential has been stored.' });
+      }
+      setIsCredentialModalOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save credential. Please try again.', variant: 'destructive' });
     }
-    setIsCredentialModalOpen(false);
   };
 
-  const handleDeleteCredential = () => {
+  const handleDeleteCredential = async () => {
     if (deletingCredential) {
-      deleteCredential(deletingCredential.id);
-      toast({ title: 'Credential deleted', description: 'Credential has been removed.' });
-      setIsCredDeleteDialogOpen(false);
-      setDeletingCredential(null);
+      try {
+        await deleteCredential(deletingCredential.id);
+        toast({ title: 'Credential deleted', description: 'Credential has been removed.' });
+        setIsCredDeleteDialogOpen(false);
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to delete credential.', variant: 'destructive' });
+      } finally {
+        setDeletingCredential(null);
+      }
     }
   };
 
@@ -299,217 +317,446 @@ const Clients = () => {
     };
 
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6"
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/clients')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold flex-shrink-0"
-            style={{ backgroundColor: `${selectedClient.color}20`, color: selectedClient.color }}
-          >
-            {selectedClient.initials}
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">{selectedClient.name}</h1>
-            <p className="text-muted-foreground">{selectedClient.description}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleEditClient(selectedClient)}>
-              <Edit2 className="h-4 w-4 mr-2" />
-              Edit
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6"
+        >
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/clients')}>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <Button className="btn-primary" onClick={() => handleAddCredential()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Credential
-            </Button>
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold flex-shrink-0"
+              style={{ backgroundColor: `${selectedClient.color}20`, color: selectedClient.color }}
+            >
+              {selectedClient.initials}
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">{selectedClient.name}</h1>
+              <p className="text-muted-foreground">{selectedClient.description}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => handleEditClient(selectedClient)}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button className="btn-primary" onClick={() => handleAddCredential()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Credential
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Credentials by Environment */}
-        <Tabs defaultValue="all" className="space-y-4">
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="all">All ({clientCredentials.length})</TabsTrigger>
-            <TabsTrigger value="production">Production ({groupedCredentials.production.length})</TabsTrigger>
-            <TabsTrigger value="staging">Staging ({groupedCredentials.staging.length})</TabsTrigger>
-            <TabsTrigger value="development">Development ({groupedCredentials.development.length})</TabsTrigger>
-          </TabsList>
+          {/* Credentials by Environment */}
+          <Tabs defaultValue="all" className="space-y-4">
+            <TabsList className="bg-muted/50">
+              <TabsTrigger value="all">All ({clientCredentials.length})</TabsTrigger>
+              <TabsTrigger value="production">Production ({groupedCredentials.production.length})</TabsTrigger>
+              <TabsTrigger value="staging">Staging ({groupedCredentials.staging.length})</TabsTrigger>
+              <TabsTrigger value="development">Development ({groupedCredentials.development.length})</TabsTrigger>
+            </TabsList>
 
-          {['all', 'production', 'staging', 'development'].map((env) => {
-            const creds = env === 'all' ? clientCredentials : groupedCredentials[env as EnvironmentType];
-            return (
-              <TabsContent key={env} value={env} className="space-y-4">
-                {creds.length === 0 ? (
-                  <div className="glass-card p-12 text-center">
-                    <Key className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold text-lg">No credentials found</h3>
-                    <p className="text-muted-foreground mt-1 mb-4">
-                      {env === 'all' ? 'Add your first credential for this client' : `No ${env} credentials yet`}
-                    </p>
-                    <Button className="btn-primary" onClick={() => handleAddCredential()}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Credential
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {creds.map((credential) => {
-                      const ServiceIcon = serviceTypeIcons[credential.serviceType];
-                      const isVisible = visiblePasswords.has(credential.id);
-                      return (
-                        <motion.div
-                          key={credential.id}
-                          layout
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="glass-card p-5"
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted flex-shrink-0">
-                              <ServiceIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-3">
-                              <div className="flex items-center gap-3 flex-wrap">
-                                <h3 className="font-semibold">{credential.name}</h3>
-                                <Badge variant="outline" className={environmentColors[credential.environment]}>
-                                  {credential.environment}
-                                </Badge>
-                                <Badge variant="secondary" className="capitalize">
-                                  {credential.serviceType}
-                                </Badge>
+            {['all', 'production', 'staging', 'development'].map((env) => {
+              const creds = env === 'all' ? clientCredentials : groupedCredentials[env as EnvironmentType];
+              return (
+                <TabsContent key={env} value={env} className="space-y-4">
+                  {creds.length === 0 ? (
+                    <div className="glass-card p-12 text-center">
+                      <Key className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-semibold text-lg">No credentials found</h3>
+                      <p className="text-muted-foreground mt-1 mb-4">
+                        {env === 'all' ? 'Add your first credential for this client' : `No ${env} credentials yet`}
+                      </p>
+                      <Button className="btn-primary" onClick={() => handleAddCredential()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Credential
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {creds.map((credential) => {
+                        const ServiceIcon = serviceTypeIcons[credential.serviceType];
+                        const isVisible = visiblePasswords.has(credential.id);
+                        return (
+                          <motion.div
+                            key={credential.id}
+                            layout
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="glass-card p-5"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted flex-shrink-0">
+                                <ServiceIcon className="h-5 w-5 text-muted-foreground" />
                               </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                  <p className="text-xs text-muted-foreground">Username / Key</p>
-                                  <div className="flex items-center gap-2">
-                                    <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate">
-                                      {credential.username}
-                                    </code>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => copyToClipboard(credential.username, 'Username')}
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </div>
+                              <div className="flex-1 min-w-0 space-y-3">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <h3 className="font-semibold">{credential.name}</h3>
+                                  <Badge variant="outline" className={environmentColors[credential.environment]}>
+                                    {credential.environment}
+                                  </Badge>
+                                  <Badge variant="secondary" className="capitalize">
+                                    {credential.serviceType}
+                                  </Badge>
                                 </div>
-                                
-                                <div className="space-y-1">
-                                  <p className="text-xs text-muted-foreground">Password / Secret</p>
-                                  <div className="flex items-center gap-2">
-                                    <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate credential-mask">
-                                      {isVisible ? credential.password : '••••••••••••'}
-                                    </code>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => togglePasswordVisibility(credential.id)}
-                                    >
-                                      {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => copyToClipboard(credential.password, 'Password')}
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
 
-                              {credential.url && (
-                                <div className="space-y-1">
-                                  <p className="text-xs text-muted-foreground">URL / Endpoint</p>
-                                  <div className="flex items-center gap-2">
-                                    <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate">
-                                      {credential.url}
-                                    </code>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => copyToClipboard(credential.url!, 'URL')}
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                    {credential.url.startsWith('http') && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Username / Key</p>
+                                    <div className="flex items-center gap-2">
+                                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate">
+                                        {credential.username}
+                                      </code>
                                       <Button
                                         variant="ghost"
                                         size="icon"
                                         className="h-7 w-7"
-                                        onClick={() => window.open(credential.url, '_blank')}
+                                        onClick={() => copyToClipboard(credential.username, 'Username')}
                                       >
-                                        <ExternalLink className="h-3.5 w-3.5" />
+                                        <Copy className="h-3.5 w-3.5" />
                                       </Button>
-                                    )}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">Password / Secret</p>
+                                    <div className="flex items-center gap-2">
+                                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate credential-mask">
+                                        {isVisible ? credential.password : '••••••••••••'}
+                                      </code>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => togglePasswordVisibility(credential.id)}
+                                      >
+                                        {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => copyToClipboard(credential.password, 'Password')}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
-                              )}
 
-                              {credential.notes && (
-                                <p className="text-sm text-muted-foreground">{credential.notes}</p>
-                              )}
+                                {credential.url && (
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">URL / Endpoint</p>
+                                    <div className="flex items-center gap-2">
+                                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded flex-1 truncate">
+                                        {credential.url}
+                                      </code>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => copyToClipboard(credential.url!, 'URL')}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                      {credential.url.startsWith('http') && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => window.open(credential.url, '_blank')}
+                                        >
+                                          <ExternalLink className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
 
-                              <div className="flex items-center justify-between pt-2">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {credential.tags.map((tag) => (
-                                    <Badge key={tag} variant="outline" className="text-xs">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Clock className="h-3 w-3" />
-                                  Updated {formatDistanceToNow(credential.lastUpdated, { addSuffix: true })}
+                                {credential.notes && (
+                                  <p className="text-sm text-muted-foreground">{credential.notes}</p>
+                                )}
+
+                                <div className="flex items-center justify-between pt-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {credential.tags.map((tag) => (
+                                      <Badge key={tag} variant="outline" className="text-xs">
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    Updated {formatDistanceToNow(credential.lastUpdated, { addSuffix: true })}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditCredential(credential)}>
-                                  <Edit2 className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => {
-                                    setDeletingCredential(credential);
-                                    setIsCredDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditCredential(credential)}>
+                                    <Edit2 className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setDeletingCredential(credential);
+                                      setIsCredDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </motion.div>
+
+        {/* Client Modal */}
+        <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingClient ? 'Edit Client' : 'Add New Client'}</DialogTitle>
+              <DialogDescription>
+                {editingClient ? 'Update the client details below.' : 'Enter the details for your new client.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="clientNameDetail">Client Name *</Label>
+                <Input
+                  id="clientNameDetail"
+                  placeholder="Enter client name"
+                  value={clientForm.name}
+                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="clientDescriptionDetail">Description</Label>
+                <Textarea
+                  id="clientDescriptionDetail"
+                  placeholder="Project description..."
+                  value={clientForm.description}
+                  onChange={(e) => setClientForm({ ...clientForm, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="clientInitialsDetail">Initials</Label>
+                  <Input
+                    id="clientInitialsDetail"
+                    placeholder="AC"
+                    maxLength={2}
+                    value={clientForm.initials}
+                    onChange={(e) => setClientForm({ ...clientForm, initials: e.target.value.toUpperCase() })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Color</Label>
+                  <div className="flex gap-2">
+                    {clientColors.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`h-8 w-8 rounded-full transition-transform ${clientForm.color === color ? 'scale-110 ring-2 ring-offset-2 ring-offset-background ring-primary' : ''
+                          }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setClientForm({ ...clientForm, color })}
+                      />
+                    ))}
                   </div>
-                )}
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      </motion.div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsClientModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="btn-primary" onClick={handleSaveClient}>
+                {editingClient ? 'Save Changes' : 'Add Client'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Credential Modal */}
+        <Dialog open={isCredentialModalOpen} onOpenChange={setIsCredentialModalOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingCredential ? 'Edit Credential' : 'Add New Credential'}</DialogTitle>
+              <DialogDescription>
+                {editingCredential ? 'Update the credential details.' : 'Store a new credential securely.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="credNameDetail">Credential Name *</Label>
+                <Input
+                  id="credNameDetail"
+                  placeholder="e.g., PostgreSQL Production"
+                  value={credentialForm.name}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, name: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Environment</Label>
+                  <Select
+                    value={credentialForm.environment}
+                    onValueChange={(value: EnvironmentType) =>
+                      setCredentialForm({ ...credentialForm, environment: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="development">Development</SelectItem>
+                      <SelectItem value="staging">Staging</SelectItem>
+                      <SelectItem value="production">Production</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Service Type</Label>
+                  <Select
+                    value={credentialForm.serviceType}
+                    onValueChange={(value: ServiceType) =>
+                      setCredentialForm({ ...credentialForm, serviceType: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="database">Database</SelectItem>
+                      <SelectItem value="api">API Keys</SelectItem>
+                      <SelectItem value="cloud">Cloud Services</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="credUsernameDetail">Username / Key *</Label>
+                <Input
+                  id="credUsernameDetail"
+                  placeholder="Username or API key"
+                  value={credentialForm.username}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="credPasswordDetail">Password / Secret *</Label>
+                <Input
+                  id="credPasswordDetail"
+                  type="password"
+                  placeholder="Password or secret"
+                  value={credentialForm.password}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="credUrlDetail">URL / Endpoint</Label>
+                <Input
+                  id="credUrlDetail"
+                  placeholder="https://..."
+                  value={credentialForm.url}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, url: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="credNotesDetail">Notes</Label>
+                <Textarea
+                  id="credNotesDetail"
+                  placeholder="Additional notes..."
+                  value={credentialForm.notes}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, notes: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="credTagsDetail">Tags (comma separated)</Label>
+                <Input
+                  id="credTagsDetail"
+                  placeholder="production, critical, database"
+                  value={credentialForm.tags}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, tags: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCredentialModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="btn-primary" onClick={handleSaveCredential}>
+                {editingCredential ? 'Save Changes' : 'Add Credential'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Client Confirmation */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Client?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete <strong>{deletingClient?.name}</strong> and all associated credentials.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteClient}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Credential Confirmation */}
+        <AlertDialog open={isCredDeleteDialogOpen} onOpenChange={setIsCredDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Credential?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete <strong>{deletingCredential?.name}</strong>.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleDeleteCredential}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 
@@ -601,9 +848,8 @@ const Clients = () => {
               >
                 <div className={`flex ${viewMode === 'list' ? 'flex-row items-center' : 'flex-col'} gap-4`}>
                   <div
-                    className={`flex items-center justify-center rounded-xl text-lg font-bold flex-shrink-0 ${
-                      viewMode === 'grid' ? 'h-14 w-14' : 'h-12 w-12'
-                    }`}
+                    className={`flex items-center justify-center rounded-xl text-lg font-bold flex-shrink-0 ${viewMode === 'grid' ? 'h-14 w-14' : 'h-12 w-12'
+                      }`}
                     style={{ backgroundColor: `${client.color}20`, color: client.color }}
                   >
                     {client.initials}
@@ -700,9 +946,8 @@ const Clients = () => {
                     <button
                       key={color}
                       type="button"
-                      className={`h-8 w-8 rounded-full transition-transform ${
-                        clientForm.color === color ? 'scale-110 ring-2 ring-offset-2 ring-offset-background ring-primary' : ''
-                      }`}
+                      className={`h-8 w-8 rounded-full transition-transform ${clientForm.color === color ? 'scale-110 ring-2 ring-offset-2 ring-offset-background ring-primary' : ''
+                        }`}
                       style={{ backgroundColor: color }}
                       onClick={() => setClientForm({ ...clientForm, color })}
                     />

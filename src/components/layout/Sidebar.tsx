@@ -44,7 +44,7 @@ export const Sidebar = ({ isMobile, onClose }: SidebarProps) => {
       animate={{ width: collapsed ? 80 : 256 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className={cn(
-        'h-screen bg-sidebar flex flex-col border-r border-sidebar-border relative',
+        'h-screen bg-sidebar flex flex-col border-r border-sidebar-border relative sticky top-0',
         isMobile && 'w-64'
       )}
     >
