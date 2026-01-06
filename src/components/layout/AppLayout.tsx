@@ -1,15 +1,28 @@
 import { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '@/contexts/DataContext';
 import { Sidebar } from './Sidebar';
 import { Button } from '@/components/ui/button';
 
 export const AppLayout = () => {
-  const { isAuthenticated } = useData();
+  const { isAuthenticated, isLoading } = useData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only redirect after loading is complete
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

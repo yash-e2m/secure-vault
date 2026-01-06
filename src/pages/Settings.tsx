@@ -7,7 +7,6 @@ import {
   Lock,
   Bell,
   Shield,
-  Clock,
   Trash2,
   Save,
   Eye,
@@ -65,7 +64,6 @@ const Settings = () => {
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     twoFactorAuth: false,
-    sessionTimeout: '30',
   });
 
   const handleSaveProfile = () => {
@@ -157,7 +155,7 @@ const Settings = () => {
           <TabsContent value="profile" className="space-y-6">
             <div className="glass-card p-6">
               <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
-              
+
               {/* Avatar Section */}
               <div className="flex items-center gap-6 mb-6">
                 <div className="relative group">
@@ -346,38 +344,6 @@ const Settings = () => {
                       setPreferences({ ...preferences, twoFactorAuth: checked })
                     }
                   />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Session Timeout</p>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically log out after inactivity
-                      </p>
-                    </div>
-                  </div>
-                  <Select
-                    value={preferences.sessionTimeout}
-                    onValueChange={(value) =>
-                      setPreferences({ ...preferences, sessionTimeout: value })
-                    }
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="never">Never</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </div>

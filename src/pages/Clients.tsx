@@ -70,12 +70,12 @@ const serviceTypeIcons: Record<ServiceType, typeof Database> = {
 };
 
 const environmentColors: Record<EnvironmentType, string> = {
-  production: 'bg-destructive/20 text-destructive border-destructive/30',
-  staging: 'bg-warning/20 text-warning border-warning/30',
-  development: 'bg-success/20 text-success border-success/30',
+  production: 'bg-[#FFE8EC] text-[#E85D75] border-[#E85D75]/30',
+  staging: 'bg-[#FFF4E6] text-[#CC7F00] border-[#FF9F00]/30',
+  development: 'bg-[#F0EDFF] text-[#7B61FF] border-[#7B61FF]/30',
 };
 
-const clientColors = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1'];
+const clientColors = ['#0EA5E9', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981'];
 
 const Clients = () => {
   const {
