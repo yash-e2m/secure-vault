@@ -18,12 +18,15 @@ export interface Client {
   createdAt: Date;
 }
 
+export type EnvironmentType = 'development' | 'staging' | 'production';
+export type ServiceType = 'database' | 'api' | 'cloud' | 'env' | 'other';
+
 export interface Credential {
   id: string;
   clientId: string;
   name: string;
-  environment: 'development' | 'staging' | 'production';
-  serviceType: 'database' | 'api' | 'cloud' | 'other';
+  environment: EnvironmentType;
+  serviceType: ServiceType;
   username: string;
   password: string;
   url?: string;
@@ -32,6 +35,3 @@ export interface Credential {
   lastUpdated: Date;
   createdAt: Date;
 }
-
-export type EnvironmentType = 'development' | 'staging' | 'production';
-export type ServiceType = 'database' | 'api' | 'cloud' | 'other';

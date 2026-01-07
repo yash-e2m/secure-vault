@@ -156,28 +156,11 @@ const Settings = () => {
             <div className="glass-card p-6">
               <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
 
-              {/* Avatar Section */}
-              <div className="flex items-center gap-6 mb-6">
-                <div className="relative group">
-                  <Avatar className="h-20 w-20 border-2 border-primary/30">
-                    <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
-                      {user.name.split(' ').map((n) => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <button className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="h-6 w-6" />
-                  </button>
-                </div>
-                <div>
-                  <h3 className="font-medium">{user.name}</h3>
-                  <p className="text-sm text-muted-foreground">{user.role}</p>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Change Avatar
-                  </Button>
-                </div>
+              {/* Name Display */}
+              <div className="mb-6">
+                <h3 className="font-medium text-xl">{user.name}</h3>
+                <p className="text-sm text-muted-foreground">{user.role}</p>
               </div>
-
-              <Separator className="my-6" />
 
               {/* Profile Form */}
               <div className="space-y-4">

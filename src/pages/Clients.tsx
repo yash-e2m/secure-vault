@@ -19,6 +19,7 @@ import {
   Code,
   MoreHorizontal,
   ExternalLink,
+  FileCode,
 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ const serviceTypeIcons: Record<ServiceType, typeof Database> = {
   database: Database,
   api: Code,
   cloud: Cloud,
+  env: FileCode,
   other: MoreHorizontal,
 };
 
@@ -599,7 +601,7 @@ const Clients = () => {
 
         {/* Credential Modal */}
         <Dialog open={isCredentialModalOpen} onOpenChange={setIsCredentialModalOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingCredential ? 'Edit Credential' : 'Add New Credential'}</DialogTitle>
               <DialogDescription>
@@ -649,40 +651,109 @@ const Clients = () => {
                     <SelectContent>
                       <SelectItem value="database">Database</SelectItem>
                       <SelectItem value="api">API Keys</SelectItem>
+                      <SelectItem value="env">Env Variable</SelectItem>
                       <SelectItem value="cloud">Cloud Services</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="credUsernameDetail">Username / Key *</Label>
-                <Input
-                  id="credUsernameDetail"
-                  placeholder="Username or API key"
-                  value={credentialForm.username}
-                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="credPasswordDetail">Password / Secret *</Label>
-                <Input
-                  id="credPasswordDetail"
-                  type="password"
-                  placeholder="Password or secret"
-                  value={credentialForm.password}
-                  onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="credUrlDetail">URL / Endpoint</Label>
-                <Input
-                  id="credUrlDetail"
-                  placeholder="https://..."
-                  value={credentialForm.url}
-                  onChange={(e) => setCredentialForm({ ...credentialForm, url: e.target.value })}
-                />
-              </div>
+
+              {/* Dynamic fields based on service type */}
+              {/* Cloud Services & Other: Username field */}
+              {(credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+                <div className="space-y-2">
+                  <Label htmlFor="credUsernameDetail">Username *</Label>
+                  <Input
+                    id="credUsernameDetail"
+                    placeholder="Enter username"
+                    value={credentialForm.username}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Database: Key field (stored as username) */}
+              {credentialForm.serviceType === 'database' && (
+                <div className="space-y-2">
+                  <Label htmlFor="credKeyDetail">Key *</Label>
+                  <Input
+                    id="credKeyDetail"
+                    placeholder="Database connection key"
+                    value={credentialForm.username}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* API Keys: Key field (stored as username) */}
+              {credentialForm.serviceType === 'api' && (
+                <div className="space-y-2">
+                  <Label htmlFor="credApiKeyDetail">API Key *</Label>
+                  <Input
+                    id="credApiKeyDetail"
+                    placeholder="Enter API key"
+                    value={credentialForm.username}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Env Variable: Key field (stored as username) */}
+              {credentialForm.serviceType === 'env' && (
+                <div className="space-y-2">
+                  <Label htmlFor="credEnvKeyDetail">Variable Name *</Label>
+                  <Input
+                    id="credEnvKeyDetail"
+                    placeholder="e.g., DATABASE_URL"
+                    value={credentialForm.username}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Database, Cloud, Other: Password field */}
+              {(credentialForm.serviceType === 'database' || credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+                <div className="space-y-2">
+                  <Label htmlFor="credPasswordDetail">Password / Secret *</Label>
+                  <Input
+                    id="credPasswordDetail"
+                    type="password"
+                    placeholder="Password or secret"
+                    value={credentialForm.password}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Env Variable: Value field (stored as password) */}
+              {credentialForm.serviceType === 'env' && (
+                <div className="space-y-2">
+                  <Label htmlFor="credEnvValueDetail">Value *</Label>
+                  <Input
+                    id="credEnvValueDetail"
+                    type="password"
+                    placeholder="Variable value"
+                    value={credentialForm.password}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Database, Cloud, Other: URL field */}
+              {(credentialForm.serviceType === 'database' || credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+                <div className="space-y-2">
+                  <Label htmlFor="credUrlDetail">URL / Endpoint</Label>
+                  <Input
+                    id="credUrlDetail"
+                    placeholder="https://..."
+                    value={credentialForm.url}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, url: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Notes - always shown */}
               <div className="space-y-2">
                 <Label htmlFor="credNotesDetail">Notes</Label>
                 <Textarea
@@ -692,6 +763,8 @@ const Clients = () => {
                   onChange={(e) => setCredentialForm({ ...credentialForm, notes: e.target.value })}
                 />
               </div>
+
+              {/* Tags - always shown */}
               <div className="space-y-2">
                 <Label htmlFor="credTagsDetail">Tags (comma separated)</Label>
                 <Input
@@ -969,7 +1042,7 @@ const Clients = () => {
 
       {/* Credential Modal */}
       <Dialog open={isCredentialModalOpen} onOpenChange={setIsCredentialModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingCredential ? 'Edit Credential' : 'Add New Credential'}</DialogTitle>
             <DialogDescription>
@@ -1039,40 +1112,109 @@ const Clients = () => {
                   <SelectContent>
                     <SelectItem value="database">Database</SelectItem>
                     <SelectItem value="api">API Keys</SelectItem>
+                    <SelectItem value="env">Env Variable</SelectItem>
                     <SelectItem value="cloud">Cloud Services</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username / Key</Label>
-              <Input
-                id="username"
-                placeholder="Enter username or key"
-                value={credentialForm.username}
-                onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password / Secret</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter password or secret"
-                value={credentialForm.password}
-                onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="url">URL / Endpoint</Label>
-              <Input
-                id="url"
-                placeholder="https://..."
-                value={credentialForm.url}
-                onChange={(e) => setCredentialForm({ ...credentialForm, url: e.target.value })}
-              />
-            </div>
+
+            {/* Dynamic fields based on service type */}
+            {/* Cloud Services & Other: Username field */}
+            {(credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+              <div className="space-y-2">
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  placeholder="Enter username"
+                  value={credentialForm.username}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Database: Key field (stored as username) */}
+            {credentialForm.serviceType === 'database' && (
+              <div className="space-y-2">
+                <Label htmlFor="dbKey">Key *</Label>
+                <Input
+                  id="dbKey"
+                  placeholder="Database connection key"
+                  value={credentialForm.username}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* API Keys: Key field (stored as username) */}
+            {credentialForm.serviceType === 'api' && (
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">API Key *</Label>
+                <Input
+                  id="apiKey"
+                  placeholder="Enter API key"
+                  value={credentialForm.username}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Env Variable: Key field (stored as username) */}
+            {credentialForm.serviceType === 'env' && (
+              <div className="space-y-2">
+                <Label htmlFor="envKey">Variable Name *</Label>
+                <Input
+                  id="envKey"
+                  placeholder="e.g., DATABASE_URL"
+                  value={credentialForm.username}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Database, Cloud, Other: Password field */}
+            {(credentialForm.serviceType === 'database' || credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password / Secret *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Password or secret"
+                  value={credentialForm.password}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Env Variable: Value field (stored as password) */}
+            {credentialForm.serviceType === 'env' && (
+              <div className="space-y-2">
+                <Label htmlFor="envValue">Value *</Label>
+                <Input
+                  id="envValue"
+                  type="password"
+                  placeholder="Variable value"
+                  value={credentialForm.password}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Database, Cloud, Other: URL field */}
+            {(credentialForm.serviceType === 'database' || credentialForm.serviceType === 'cloud' || credentialForm.serviceType === 'other') && (
+              <div className="space-y-2">
+                <Label htmlFor="url">URL / Endpoint</Label>
+                <Input
+                  id="url"
+                  placeholder="https://..."
+                  value={credentialForm.url}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, url: e.target.value })}
+                />
+              </div>
+            )}
+
+            {/* Notes - always shown */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -1082,6 +1224,8 @@ const Clients = () => {
                 onChange={(e) => setCredentialForm({ ...credentialForm, notes: e.target.value })}
               />
             </div>
+
+            {/* Tags - always shown */}
             <div className="space-y-2">
               <Label htmlFor="tags">Tags (comma separated)</Label>
               <Input
