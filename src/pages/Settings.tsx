@@ -3,24 +3,18 @@ import { motion } from 'framer-motion';
 import {
   User,
   Mail,
-  Phone,
   Lock,
-  Bell,
-  Shield,
   Trash2,
   Save,
   Eye,
   EyeOff,
-  Camera,
+  Briefcase,
 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
+import { usersApi } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,15 +35,23 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
+const ROLES = [
+  'AI Adoption Specialist',
+  'AI Executor',
+  'AI Associate Executor',
+  'AI Intern',
+];
+
 const Settings = () => {
   const { user, logout } = useData();
   const { toast } = useToast();
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
     name: user.name,
     email: user.email,
-    phone: '+1 (555) 123-4567',
+    role: user.role,
   });
 
   // Password form state
@@ -73,7 +75,7 @@ const Settings = () => {
     });
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
         title: 'Passwords do not match',
@@ -90,11 +92,24 @@ const Settings = () => {
       });
       return;
     }
-    toast({
-      title: 'Password changed',
-      description: 'Your password has been updated successfully.',
-    });
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    setIsChangingPassword(true);
+    try {
+      await usersApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      toast({
+        title: 'Password changed',
+        description: 'Your password has been updated successfully.',
+      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast({
+        title: 'Failed to change password',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -133,250 +148,184 @@ const Settings = () => {
         </p>
       </motion.div>
 
-      {/* Settings Tabs */}
-      <motion.div variants={itemVariants}>
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="h-4 w-4" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Account
-            </TabsTrigger>
-            <TabsTrigger value="danger" className="gap-2 text-destructive data-[state=active]:text-destructive">
-              <Trash2 className="h-4 w-4" />
-              Danger Zone
-            </TabsTrigger>
-          </TabsList>
+      {/* Settings Content */}
+      <motion.div variants={itemVariants} className="space-y-6">
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
 
-          {/* Profile Settings */}
-          <TabsContent value="profile" className="space-y-6">
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
+          {/* Name Display */}
+          <div className="mb-6">
+            <h3 className="font-medium text-xl">{user.name}</h3>
+            <p className="text-sm text-muted-foreground">{user.role}</p>
+          </div>
 
-              {/* Name Display */}
-              <div className="mb-6">
-                <h3 className="font-medium text-xl">{user.name}</h3>
-                <p className="text-sm text-muted-foreground">{user.role}</p>
-              </div>
-
-              {/* Profile Form */}
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="name"
-                        value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileForm.email}
-                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button className="btn-primary" onClick={handleSaveProfile}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </Button>
+          {/* Profile Form */}
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="pl-10"
+                  />
                 </div>
               </div>
-            </div>
-
-            {/* Change Password */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Change Password</h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="currentPassword"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
-                      }
-                      className="pl-10 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords(!showPasswords)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="newPassword"
-                        type={showPasswords ? 'text' : 'password'}
-                        value={passwordForm.newPassword}
-                        onChange={(e) =>
-                          setPasswordForm({ ...passwordForm, newPassword: e.target.value })
-                        }
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="confirmPassword"
-                        type={showPasswords ? 'text' : 'password'}
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) =>
-                          setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
-                        }
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={handleChangePassword}>
-                    Update Password
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Account Settings */}
-          <TabsContent value="account" className="space-y-6">
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Notifications</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Email Notifications</p>
-                      <p className="text-sm text-muted-foreground">
-                        Receive email alerts for important updates
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={preferences.emailNotifications}
-                    onCheckedChange={(checked) =>
-                      setPreferences({ ...preferences, emailNotifications: checked })
-                    }
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    className="pl-10"
                   />
                 </div>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Select
+                  value={profileForm.role}
+                  onValueChange={(value) => setProfileForm({ ...profileForm, role: value })}
+                >
+                  <SelectTrigger className="pl-10">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button className="btn-primary" onClick={handleSaveProfile}>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
 
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Security</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Shield className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">
-                        Add an extra layer of security to your account
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={preferences.twoFactorAuth}
-                    onCheckedChange={(checked) =>
-                      setPreferences({ ...preferences, twoFactorAuth: checked })
+        {/* Change Password */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold mb-4">Change Password</h2>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="currentPassword"
+                  type={showPasswords ? 'text' : 'password'}
+                  value={passwordForm.currentPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+                  }
+                  className="pl-10 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="newPassword"
+                    type={showPasswords ? 'text' : 'password'}
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                     }
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPasswords ? 'text' : 'password'}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                    }
+                    className="pl-10"
                   />
                 </div>
               </div>
             </div>
-          </TabsContent>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={handleChangePassword} disabled={isChangingPassword}>
+                {isChangingPassword ? 'Updating...' : 'Update Password'}
+              </Button>
+            </div>
+          </div>
+        </div>
 
-          {/* Danger Zone */}
-          <TabsContent value="danger" className="space-y-6">
-            <div className="glass-card p-6 border-destructive/30">
-              <h2 className="text-lg font-semibold text-destructive mb-2">Danger Zone</h2>
-              <p className="text-muted-foreground mb-6">
-                These actions are irreversible. Please proceed with caution.
+        {/* Danger Zone - moved from separate tab */}
+        <div className="glass-card p-6 border-destructive/30">
+          <h2 className="text-lg font-semibold text-destructive mb-2">Danger Zone</h2>
+          <p className="text-muted-foreground mb-6">
+            These actions are irreversible. Please proceed with caution.
+          </p>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
+            <div>
+              <p className="font-medium">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account and all associated data
               </p>
-
-              <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
-                <div>
-                  <p className="font-medium">Delete Account</p>
-                  <p className="text-sm text-muted-foreground">
-                    Permanently delete your account and all associated data
-                  </p>
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Account
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account
-                        and remove all your data including clients and credentials from our servers.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={handleDeleteAccount}
-                      >
-                        Yes, delete my account
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your account
+                    and remove all your data including clients and credentials from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleDeleteAccount}
+                  >
+                    Yes, delete my account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
       </motion.div>
     </motion.div>
   );

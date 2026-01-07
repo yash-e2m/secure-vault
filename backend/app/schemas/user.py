@@ -30,3 +30,8 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str

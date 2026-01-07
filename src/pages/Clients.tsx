@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Plus,
+  Minus,
   Edit2,
   Trash2,
   Key,
@@ -129,6 +130,11 @@ const Clients = () => {
     notes: '',
     tags: '',
   });
+
+  // Env pairs state for multiple env variables
+  const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([
+    { key: '', value: '' }
+  ]);
 
   // Get selected client details
   const selectedClient = clientId ? clients.find((c) => c.id === clientId) : null;
@@ -699,16 +705,62 @@ const Clients = () => {
                 </div>
               )}
 
-              {/* Env Variable: Key field (stored as username) */}
+              {/* Env Variable: Multiple key-value pairs */}
               {credentialForm.serviceType === 'env' && (
-                <div className="space-y-2">
-                  <Label htmlFor="credEnvKeyDetail">Variable Name *</Label>
-                  <Input
-                    id="credEnvKeyDetail"
-                    placeholder="e.g., DATABASE_URL"
-                    value={credentialForm.username}
-                    onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
-                  />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Environment Variables *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEnvPairs([...envPairs, { key: '', value: '' }])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Variable
+                    </Button>
+                  </div>
+                  {envPairs.map((pair, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          placeholder="Variable name (e.g., DATABASE_URL)"
+                          value={pair.key}
+                          onChange={(e) => {
+                            const newPairs = [...envPairs];
+                            newPairs[index].key = e.target.value;
+                            setEnvPairs(newPairs);
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          type="password"
+                          placeholder="Value"
+                          value={pair.value}
+                          onChange={(e) => {
+                            const newPairs = [...envPairs];
+                            newPairs[index].value = e.target.value;
+                            setEnvPairs(newPairs);
+                          }}
+                        />
+                      </div>
+                      {envPairs.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            const newPairs = envPairs.filter((_, i) => i !== index);
+                            setEnvPairs(newPairs);
+                          }}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -720,20 +772,6 @@ const Clients = () => {
                     id="credPasswordDetail"
                     type="password"
                     placeholder="Password or secret"
-                    value={credentialForm.password}
-                    onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
-                  />
-                </div>
-              )}
-
-              {/* Env Variable: Value field (stored as password) */}
-              {credentialForm.serviceType === 'env' && (
-                <div className="space-y-2">
-                  <Label htmlFor="credEnvValueDetail">Value *</Label>
-                  <Input
-                    id="credEnvValueDetail"
-                    type="password"
-                    placeholder="Variable value"
                     value={credentialForm.password}
                     onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
                   />
@@ -1160,16 +1198,62 @@ const Clients = () => {
               </div>
             )}
 
-            {/* Env Variable: Key field (stored as username) */}
+            {/* Env Variable: Multiple key-value pairs */}
             {credentialForm.serviceType === 'env' && (
-              <div className="space-y-2">
-                <Label htmlFor="envKey">Variable Name *</Label>
-                <Input
-                  id="envKey"
-                  placeholder="e.g., DATABASE_URL"
-                  value={credentialForm.username}
-                  onChange={(e) => setCredentialForm({ ...credentialForm, username: e.target.value })}
-                />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Environment Variables *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEnvPairs([...envPairs, { key: '', value: '' }])}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Variable
+                  </Button>
+                </div>
+                {envPairs.map((pair, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        placeholder="Variable name (e.g., DATABASE_URL)"
+                        value={pair.key}
+                        onChange={(e) => {
+                          const newPairs = [...envPairs];
+                          newPairs[index].key = e.target.value;
+                          setEnvPairs(newPairs);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        type="password"
+                        placeholder="Value"
+                        value={pair.value}
+                        onChange={(e) => {
+                          const newPairs = [...envPairs];
+                          newPairs[index].value = e.target.value;
+                          setEnvPairs(newPairs);
+                        }}
+                      />
+                    </div>
+                    {envPairs.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          const newPairs = envPairs.filter((_, i) => i !== index);
+                          setEnvPairs(newPairs);
+                        }}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
@@ -1181,20 +1265,6 @@ const Clients = () => {
                   id="password"
                   type="password"
                   placeholder="Password or secret"
-                  value={credentialForm.password}
-                  onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
-                />
-              </div>
-            )}
-
-            {/* Env Variable: Value field (stored as password) */}
-            {credentialForm.serviceType === 'env' && (
-              <div className="space-y-2">
-                <Label htmlFor="envValue">Value *</Label>
-                <Input
-                  id="envValue"
-                  type="password"
-                  placeholder="Variable value"
                   value={credentialForm.password}
                   onChange={(e) => setCredentialForm({ ...credentialForm, password: e.target.value })}
                 />

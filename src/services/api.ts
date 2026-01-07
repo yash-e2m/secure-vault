@@ -119,6 +119,21 @@ export const usersApi = {
         const response = await fetchWithAuth('/users/me');
         if (!response.ok) throw new Error('Failed to get user');
         return response.json();
+    },
+
+    async changePassword(currentPassword: string, newPassword: string) {
+        const response = await fetchWithAuth('/users/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword,
+            }),
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Failed to change password' }));
+            throw new Error(error.detail || 'Failed to change password');
+        }
+        return response.json();
     }
 };
 

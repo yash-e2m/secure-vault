@@ -1,23 +1,38 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Shield, Eye, EyeOff, Mail, Lock, User, Briefcase } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+
+const ROLES = [
+  'AI Adoption Specialist',
+  'AI Executor',
+  'AI Associate Executor',
+  'AI Intern',
+];
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useData();
+  const { register } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -63,15 +78,30 @@ const Register = () => {
     }
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    login(email, password);
-    toast({
-      title: 'Account created!',
-      description: 'Welcome to CredVault. Your account has been created successfully.',
-    });
-    navigate('/dashboard');
-    setIsLoading(false);
+    try {
+      const success = await register(name, email, password, role || 'AI Intern');
+      if (success) {
+        toast({
+          title: 'Account created!',
+          description: 'Welcome to CredVault. Your account has been created successfully.',
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: 'Registration failed',
+          description: 'Could not create account. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Registration failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -136,6 +166,25 @@ const Register = () => {
                   className="pl-10 input-glow"
                   required
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger className="pl-10 input-glow">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
