@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
 from ..models import User
-from ..schemas import UserResponse, PasswordChange
+from ..schemas import UserResponse, PasswordChange, UserListItem
 from ..services.auth import auth_service
-from ..database import SessionLocal
+from ..database import SessionLocal, get_db
 from .auth import get_current_user
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -18,6 +20,19 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
         role=current_user.role,
         avatar=current_user.avatar
     )
+
+
+@router.get("/all", response_model=List[UserListItem])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all users for visibility selection dropdown"""
+    users = db.query(User).all()
+    return [
+        UserListItem(id=user.id, name=user.name, email=user.email)
+        for user in users
+    ]
 
 
 @router.post("/change-password")
@@ -49,3 +64,4 @@ def change_password(
         return {"message": "Password changed successfully"}
     finally:
         db.close()
+

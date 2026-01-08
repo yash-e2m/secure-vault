@@ -57,6 +57,14 @@ def create_client(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new client"""
+    # Check if client with same name already exists
+    existing_client = db.query(Client).filter(Client.name == client_data.name).first()
+    if existing_client:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A client with this name already exists"
+        )
+    
     client = Client(
         id=str(uuid.uuid4()),
         name=client_data.name,
@@ -87,6 +95,15 @@ def update_client(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Check if new name conflicts with existing client
+    if client_data.name and client_data.name != client.name:
+        existing_client = db.query(Client).filter(Client.name == client_data.name).first()
+        if existing_client:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A client with this name already exists"
+            )
     
     update_data = client_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():

@@ -121,6 +121,12 @@ export const usersApi = {
         return response.json();
     },
 
+    async getAll() {
+        const response = await fetchWithAuth('/users/all');
+        if (!response.ok) throw new Error('Failed to get users');
+        return response.json();
+    },
+
     async changePassword(currentPassword: string, newPassword: string) {
         const response = await fetchWithAuth('/users/change-password', {
             method: 'POST',
@@ -257,6 +263,7 @@ export const credentialsApi = {
         url?: string;
         notes?: string;
         tags: string[];
+        allowedUserIds?: string[];
     }) {
         const response = await fetchWithAuth('/credentials', {
             method: 'POST',
@@ -283,6 +290,7 @@ export const credentialsApi = {
         url: string;
         notes: string;
         tags: string[];
+        allowedUserIds: string[];
     }>) {
         const response = await fetchWithAuth(`/credentials/${id}`, {
             method: 'PUT',

@@ -4,7 +4,14 @@ from datetime import datetime
 
 
 EnvironmentType = Literal["development", "staging", "production"]
-ServiceType = Literal["database", "api", "cloud", "other"]
+ServiceType = Literal["database", "api", "cloud", "env", "other"]
+
+
+class AllowedUserInfo(BaseModel):
+    """Information about a user who has access to view a credential"""
+    id: str
+    name: str
+    email: str
 
 
 class CredentialCreate(BaseModel):
@@ -17,6 +24,7 @@ class CredentialCreate(BaseModel):
     url: Optional[str] = None
     notes: Optional[str] = None
     tags: List[str] = []
+    allowedUserIds: Optional[List[str]] = None  # None or empty = all users (legacy mode)
 
 
 class CredentialUpdate(BaseModel):
@@ -28,6 +36,7 @@ class CredentialUpdate(BaseModel):
     url: Optional[str] = None
     notes: Optional[str] = None
     tags: Optional[List[str]] = None
+    allowedUserIds: Optional[List[str]] = None  # Only owner can modify this
 
 
 class CredentialResponse(BaseModel):
@@ -43,6 +52,14 @@ class CredentialResponse(BaseModel):
     tags: List[str] = []
     lastUpdated: datetime
     createdAt: datetime
+    # Visibility fields
+    ownerId: Optional[str] = None
+    ownerName: Optional[str] = None
+    isLegacy: bool = True
+    isOwner: bool = False
+    allowedUsers: List[AllowedUserInfo] = []
+    viewerCount: int = 0
 
     class Config:
         from_attributes = True
+

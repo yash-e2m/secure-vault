@@ -195,6 +195,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       url: credential.url,
       notes: credential.notes,
       tags: credential.tags,
+      allowedUserIds: credential.allowedUsers?.map(u => u.id),
     });
     setCredentials((prev) => [...prev, newCred]);
     setClients((prev) =>
@@ -207,7 +208,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateCredential = async (id: string, credentialData: Partial<Credential>) => {
-    const updated = await credentialsApi.update(id, credentialData);
+    // Extract allowedUserIds from allowedUsers for the API call
+    const apiData: any = { ...credentialData };
+    if (credentialData.allowedUsers) {
+      apiData.allowedUserIds = credentialData.allowedUsers.map(u => u.id);
+      delete apiData.allowedUsers;
+    }
+    // Remove fields that shouldn't be sent to the API
+    delete apiData.isLegacy;
+    delete apiData.isOwner;
+    delete apiData.viewerCount;
+    delete apiData.ownerId;
+    delete apiData.ownerName;
+
+    const updated = await credentialsApi.update(id, apiData);
     setCredentials((prev) =>
       prev.map((cred) => (cred.id === id ? updated : cred))
     );

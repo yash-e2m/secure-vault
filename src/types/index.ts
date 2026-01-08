@@ -21,6 +21,12 @@ export interface Client {
 export type EnvironmentType = 'development' | 'staging' | 'production';
 export type ServiceType = 'database' | 'api' | 'cloud' | 'env' | 'other';
 
+export interface AllowedUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface Credential {
   id: string;
   clientId: string;
@@ -34,4 +40,12 @@ export interface Credential {
   tags: string[];
   lastUpdated: Date;
   createdAt: Date;
+  // Visibility fields
+  ownerId?: string;
+  ownerName?: string;
+  isLegacy: boolean;
+  isOwner: boolean;
+  allowedUsers: AllowedUser[];
+  viewerCount: number;
 }
+

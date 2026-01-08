@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -11,7 +11,7 @@ class Credential(Base):
     client_id = Column(String, ForeignKey("clients.id"), nullable=False)
     name = Column(String, nullable=False)
     environment = Column(String, nullable=False)  # 'development' | 'staging' | 'production'
-    service_type = Column(String, nullable=False)  # 'database' | 'api' | 'cloud' | 'other'
+    service_type = Column(String, nullable=False)  # 'database' | 'api' | 'cloud' | 'env' | 'other'
     username = Column(String, nullable=False)
     
     # Encrypted fields
@@ -22,6 +22,13 @@ class Credential(Base):
     tags = Column(JSON, default=list)
     last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Ownership and visibility fields
+    owner_id = Column(String, ForeignKey("users.id"), nullable=True)  # Nullable for legacy credentials
+    is_legacy = Column(Boolean, default=True)  # True = visible to all, False = restricted
 
-    # Relationship to client
+    # Relationships
     client = relationship("Client", back_populates="credentials")
+    owner = relationship("User", foreign_keys=[owner_id])
+    viewers = relationship("CredentialViewer", back_populates="credential", cascade="all, delete-orphan")
+

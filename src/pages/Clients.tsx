@@ -21,6 +21,10 @@ import {
   MoreHorizontal,
   ExternalLink,
   FileCode,
+  Users,
+  Shield,
+  Globe,
+  UserCheck,
 } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
@@ -56,13 +60,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { Client, Credential, EnvironmentType, ServiceType } from '@/types';
+import { Client, Credential, EnvironmentType, ServiceType, AllowedUser } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { usersApi } from '@/services/api';
 
 const serviceTypeIcons: Record<ServiceType, typeof Database> = {
   database: Database,
@@ -135,6 +141,11 @@ const Clients = () => {
   const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([
     { key: '', value: '' }
   ]);
+
+  // User visibility state
+  const [allUsers, setAllUsers] = useState<AllowedUser[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [visibilityMode, setVisibilityMode] = useState<'all' | 'specific'>('all');
 
   // Get selected client details
   const selectedClient = clientId ? clients.find((c) => c.id === clientId) : null;
@@ -227,7 +238,7 @@ const Clients = () => {
     }
   };
 
-  const handleAddCredential = (forClientId?: string) => {
+  const handleAddCredential = async (forClientId?: string) => {
     setEditingCredential(null);
     setCredentialForm({
       clientId: forClientId || clientId || '',
@@ -240,10 +251,21 @@ const Clients = () => {
       notes: '',
       tags: '',
     });
+    setVisibilityMode('all');
+    setSelectedUserIds([]);
+
+    // Load all users for visibility selection
+    try {
+      const users = await usersApi.getAll();
+      setAllUsers(users);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+
     setIsCredentialModalOpen(true);
   };
 
-  const handleEditCredential = (credential: Credential) => {
+  const handleEditCredential = async (credential: Credential) => {
     setEditingCredential(credential);
     setCredentialForm({
       clientId: credential.clientId,
@@ -256,6 +278,24 @@ const Clients = () => {
       notes: credential.notes || '',
       tags: credential.tags.join(', '),
     });
+
+    // Set visibility state from credential
+    if (credential.isLegacy) {
+      setVisibilityMode('all');
+      setSelectedUserIds([]);
+    } else {
+      setVisibilityMode('specific');
+      setSelectedUserIds(credential.allowedUsers?.map(u => u.id) || []);
+    }
+
+    // Load all users for visibility selection
+    try {
+      const users = await usersApi.getAll();
+      setAllUsers(users);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+
     setIsCredentialModalOpen(true);
   };
 
@@ -271,15 +311,59 @@ const Clients = () => {
 
     const tags = credentialForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
 
+    // Build allowed users based on visibility mode
+    const allowedUsers: AllowedUser[] = visibilityMode === 'specific'
+      ? allUsers.filter(u => selectedUserIds.includes(u.id))
+      : [];
+
+    // Build the credential data based on service type
+    let credentialData = { ...credentialForm };
+
+    if (credentialForm.serviceType === 'env') {
+      // For env variables, combine key-value pairs into a special format
+      const validPairs = envPairs.filter(p => p.key.trim() && p.value.trim());
+      if (validPairs.length === 0) {
+        toast({
+          title: 'Required fields missing',
+          description: 'Please add at least one environment variable.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      // Store env pairs as JSON in the password field, keys in username
+      credentialData.username = validPairs.map(p => p.key).join(', ');
+      credentialData.password = JSON.stringify(Object.fromEntries(validPairs.map(p => [p.key, p.value])));
+    } else if (credentialForm.serviceType === 'api') {
+      // For API keys, the username field contains the API key - move it to password
+      // The name field becomes the identifier
+      if (!credentialData.password && credentialData.username) {
+        credentialData.password = credentialData.username;
+        credentialData.username = credentialData.name;
+      }
+    }
+
     try {
       if (editingCredential) {
-        await updateCredential(editingCredential.id, { ...credentialForm, tags });
+        await updateCredential(editingCredential.id, {
+          ...credentialData,
+          tags,
+          allowedUsers,
+        });
         toast({ title: 'Credential updated', description: 'Changes have been saved.' });
       } else {
-        await addCredential({ ...credentialForm, tags });
+        await addCredential({
+          ...credentialData,
+          tags,
+          isLegacy: visibilityMode === 'all',
+          isOwner: true,
+          allowedUsers,
+          viewerCount: allowedUsers.length,
+        });
         toast({ title: 'Credential added', description: 'New credential has been stored.' });
       }
       setIsCredentialModalOpen(false);
+      // Reset env pairs for next time
+      setEnvPairs([{ key: '', value: '' }]);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to save credential. Please try again.', variant: 'destructive' });
     }
@@ -351,6 +435,17 @@ const Clients = () => {
                 <Edit2 className="h-4 w-4 mr-2" />
                 Edit
               </Button>
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  setDeletingClient(selectedClient);
+                  setIsDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
               <Button className="btn-primary" onClick={() => handleAddCredential()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Credential
@@ -409,6 +504,31 @@ const Clients = () => {
                                   <Badge variant="secondary" className="capitalize">
                                     {credential.serviceType}
                                   </Badge>
+                                  {/* Visibility badges */}
+                                  {credential.isOwner && (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                      <Shield className="h-3 w-3 mr-1" />
+                                      Owner
+                                    </Badge>
+                                  )}
+                                  {!credential.isOwner && !credential.isLegacy && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                      <UserCheck className="h-3 w-3 mr-1" />
+                                      Shared
+                                    </Badge>
+                                  )}
+                                  {credential.isLegacy && (
+                                    <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                                      <Globe className="h-3 w-3 mr-1" />
+                                      Everyone
+                                    </Badge>
+                                  )}
+                                  {!credential.isLegacy && credential.viewerCount > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      <Users className="h-3 w-3 inline mr-1" />
+                                      {credential.viewerCount} user{credential.viewerCount !== 1 ? 's' : ''}
+                                    </span>
+                                  )}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -812,6 +932,83 @@ const Clients = () => {
                   onChange={(e) => setCredentialForm({ ...credentialForm, tags: e.target.value })}
                 />
               </div>
+
+              {/* Visibility Control */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-base font-semibold">Who can view this credential?</Label>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setVisibilityMode('all')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${visibilityMode === 'all'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <Globe className="h-4 w-4" />
+                      <span>Everyone</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibilityMode('specific')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${visibilityMode === 'specific'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      <span>Specific Users</span>
+                    </button>
+                  </div>
+
+                  {visibilityMode === 'specific' && (
+                    <div className="space-y-2 p-3 bg-muted/50 rounded-lg max-h-48 overflow-y-auto">
+                      {allUsers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Loading users...</p>
+                      ) : (
+                        allUsers.map((user) => (
+                          <div key={user.id} className="flex items-center gap-3 py-1">
+                            <Checkbox
+                              id={`user-${user.id}`}
+                              checked={selectedUserIds.includes(user.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedUserIds([...selectedUserIds, user.id]);
+                                } else {
+                                  setSelectedUserIds(selectedUserIds.filter(id => id !== user.id));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`user-${user.id}`}
+                              className="flex-1 text-sm cursor-pointer"
+                            >
+                              <span className="font-medium">{user.name}</span>
+                              <span className="text-muted-foreground ml-2">({user.email})</span>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                      {visibilityMode === 'specific' && selectedUserIds.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                          {selectedUserIds.length} user{selectedUserIds.length !== 1 ? 's' : ''} selected
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {visibilityMode === 'all' && (
+                    <p className="text-sm text-muted-foreground">
+                      All users in your organization will be able to view this credential.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCredentialModalOpen(false)}>
@@ -982,27 +1179,6 @@ const Clients = () => {
                         {formatDistanceToNow(client.lastAccessed, { addSuffix: true })}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEditClient(client)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        setDeletingClient(client);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -1304,6 +1480,83 @@ const Clients = () => {
                 value={credentialForm.tags}
                 onChange={(e) => setCredentialForm({ ...credentialForm, tags: e.target.value })}
               />
+            </div>
+
+            {/* Visibility Control */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-base font-semibold">Who can view this credential?</Label>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setVisibilityMode('all')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${visibilityMode === 'all'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50'
+                      }`}
+                  >
+                    <Globe className="h-4 w-4" />
+                    <span>Everyone</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibilityMode('specific')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${visibilityMode === 'specific'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50'
+                      }`}
+                  >
+                    <UserCheck className="h-4 w-4" />
+                    <span>Specific Users</span>
+                  </button>
+                </div>
+
+                {visibilityMode === 'specific' && (
+                  <div className="space-y-2 p-3 bg-muted/50 rounded-lg max-h-48 overflow-y-auto">
+                    {allUsers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Loading users...</p>
+                    ) : (
+                      allUsers.map((user) => (
+                        <div key={user.id} className="flex items-center gap-3 py-1">
+                          <Checkbox
+                            id={`user-list-${user.id}`}
+                            checked={selectedUserIds.includes(user.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedUserIds([...selectedUserIds, user.id]);
+                              } else {
+                                setSelectedUserIds(selectedUserIds.filter(id => id !== user.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`user-list-${user.id}`}
+                            className="flex-1 text-sm cursor-pointer"
+                          >
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-2">({user.email})</span>
+                          </label>
+                        </div>
+                      ))
+                    )}
+                    {visibilityMode === 'specific' && selectedUserIds.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                        {selectedUserIds.length} user{selectedUserIds.length !== 1 ? 's' : ''} selected
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {visibilityMode === 'all' && (
+                  <p className="text-sm text-muted-foreground">
+                    All users in your organization will be able to view this credential.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
