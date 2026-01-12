@@ -7,3 +7,5 @@ cryptography>=44.0.0
 pydantic[email]>=2.10.0
 python-multipart>=0.0.17
 psycopg2-binary>=2.9.9
+fastapi-mail>=1.4.1
+python-dotenv>=1.0.0

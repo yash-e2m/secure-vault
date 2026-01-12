@@ -110,6 +110,28 @@ export const authApi = {
 
     isAuthenticated(): boolean {
         return !!getToken();
+    },
+
+    async forgotPassword(email: string) {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/auth/forgot-password?email=${encodeURIComponent(email)}`, {
+            method: 'POST',
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Failed to send reset email' }));
+            throw new Error(error.detail || 'Failed to send reset email');
+        }
+        return response.json();
+    },
+
+    async resetPassword(token: string, newPassword: string) {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/auth/reset-password?token=${encodeURIComponent(token)}&new_password=${encodeURIComponent(newPassword)}`, {
+            method: 'POST',
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: 'Failed to reset password' }));
+            throw new Error(error.detail || 'Failed to reset password');
+        }
+        return response.json();
     }
 };
 

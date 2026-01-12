@@ -12,6 +12,9 @@ import Clients from "./pages/Clients";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 const queryClient = new QueryClient();
 
 // Smart redirect component that sends authenticated users to dashboard
@@ -37,6 +40,8 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected Routes */}
             <Route element={<AppLayout />}>

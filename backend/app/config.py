@@ -27,3 +27,14 @@ CORS_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
 ]
+
+# Email Configuration
+MAIL_USERNAME = os.getenv("MAIL_USERNAME", "221430131132@gtu.edu.in")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "kzle veja uvhx vape")
+MAIL_FROM = os.getenv("MAIL_FROM", "221430131132@gtu.edu.in")
+MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
+MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_STARTTLS = True
+MAIL_SSL_TLS = False
+USE_CREDENTIALS = True
+VALIDATE_CERTS = True

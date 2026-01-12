@@ -113,3 +113,46 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
 def logout():
     """Logout (client should discard token)"""
     return {"message": "Successfully logged out"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(email: str, db: Session = Depends(get_db)):
+    """Request a password reset email"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Don't reveal if user exists
+        return {"message": "If this email is registered, you will receive a password reset link."}
+    
+    # Create reset token
+    token = auth_service.create_reset_token(email)
+    
+    # Send email
+    from ..services.email import email_service
+    await email_service.send_password_reset_email(email, token)
+    
+    return {"message": "If this email is registered, you will receive a password reset link."}
+
+
+@router.post("/reset-password")
+def reset_password(token: str, new_password: str, db: Session = Depends(get_db)):
+    """Reset password with a valid token"""
+    payload = auth_service.decode_token(token)
+    if not payload or payload.get("type") != "reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+    
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Update password
+    user.hashed_password = auth_service.get_password_hash(new_password)
+    db.commit()
+    
+    return {"message": "Password successfully reset"}

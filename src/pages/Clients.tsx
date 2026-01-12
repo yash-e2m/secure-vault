@@ -616,10 +616,7 @@ const Clients = () => {
                                       </Badge>
                                     ))}
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    Updated {formatDistanceToNow(credential.lastUpdated, { addSuffix: true })}
-                                  </div>
+
                                 </div>
                               </div>
 

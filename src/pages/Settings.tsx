@@ -98,8 +98,9 @@ const Settings = () => {
       await usersApi.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       toast({
         title: 'Password changed',
-        description: 'Your password has been updated successfully.',
+        description: 'Your password has been updated. Please log in again.',
       });
+      logout();
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       toast({

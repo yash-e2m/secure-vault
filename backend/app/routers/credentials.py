@@ -9,6 +9,7 @@ from ..database import get_db
 from ..models import User, Client, Credential, CredentialViewer
 from ..schemas import CredentialCreate, CredentialUpdate, CredentialResponse, AllowedUserInfo
 from ..services.encryption import encryption_service
+from ..services.email import email_service
 from .auth import get_current_user
 
 router = APIRouter(prefix="/api/credentials", tags=["Credentials"])
@@ -135,7 +136,7 @@ def get_credential(
 
 
 @router.post("", response_model=CredentialResponse, status_code=status.HTTP_201_CREATED)
-def create_credential(
+async def create_credential(
     cred_data: CredentialCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -181,6 +182,19 @@ def create_credential(
                     created_at=datetime.utcnow()
                 )
                 db.add(viewer)
+                
+                # Send notification email
+                if user.email:
+                    link = f"http://localhost:8080/clients/{cred.client_id}"
+                    try:
+                         await email_service.send_credential_shared_email(
+                            email_to=user.email,
+                            credential_name=cred.name,
+                            sharer_name=current_user.name,
+                            credential_link=link
+                        )
+                    except Exception as e:
+                        print(f"Failed to send email to {user.email}: {str(e)}")
     
     # Update client credential count
     client.credential_count += 1
@@ -192,7 +206,7 @@ def create_credential(
 
 
 @router.put("/{credential_id}", response_model=CredentialResponse)
-def update_credential(
+async def update_credential(
     credential_id: str,
     cred_data: CredentialUpdate,
     db: Session = Depends(get_db),
@@ -248,6 +262,19 @@ def update_credential(
                         created_at=datetime.utcnow()
                     )
                     db.add(viewer)
+                    
+                    # Send notification email
+                    if user.email:
+                        link = f"http://localhost:8080/clients/{cred.client_id}"
+                        try:
+                             await email_service.send_credential_shared_email(
+                                email_to=user.email,
+                                credential_name=cred.name,
+                                sharer_name=current_user.name,
+                                credential_link=link
+                            )
+                        except Exception as e:
+                            print(f"Failed to send email to {user.email}: {str(e)}")
     
     # Handle field name mapping and encryption
     for field, value in update_data.items():
@@ -272,7 +299,7 @@ def update_credential(
 
 
 @router.put("/{credential_id}/visibility", response_model=CredentialResponse)
-def update_credential_visibility(
+async def update_credential_visibility(
     credential_id: str,
     allowed_user_ids: List[str],
     db: Session = Depends(get_db),
@@ -314,6 +341,19 @@ def update_credential_visibility(
                     created_at=datetime.utcnow()
                 )
                 db.add(viewer)
+                
+                # Send notification email
+                if user.email:
+                    link = f"http://localhost:8080/clients/{cred.client_id}"
+                    try:
+                         await email_service.send_credential_shared_email(
+                            email_to=user.email,
+                            credential_name=cred.name,
+                            sharer_name=current_user.name,
+                            credential_link=link
+                        )
+                    except Exception as e:
+                        print(f"Failed to send email to {user.email}: {str(e)}")
     
     cred.last_updated = datetime.utcnow()
     db.commit()
